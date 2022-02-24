@@ -125,9 +125,18 @@ def inference(tree, A, V, N):
             E[depth, :tree.edge_heights[n]+1] = tree.leaf_predictions[n]*C[depth, :c_size]
         e = E[depth, :tree.edge_heights[n]+1]
         if feature >= 0:
-            V[feature] += q*psi(e, q, tree.edge_heights[n]+1, tree.edge_heights[n]-1, N)
+            add_value = q*psi(e, q, tree.edge_heights[n]+1, tree.edge_heights[n]-1, N)
+            if feature == 44:
+                print('add', n, add_value, m)
+            V[feature] += add_value
             if m >= 0:
-                V[feature] -= s*psi(e, s, tree.edge_heights[n]+1, tree.edge_heights[m]-1, N)
+                if n == 6:
+                    print(s, e, tree.edge_heights[n]+1, tree.edge_heights[m]-1)
+                    import ipdb; ipdb.set_trace()
+                remove_value = s*psi(e, s, tree.edge_heights[n]+1, tree.edge_heights[m]-1, N)
+                V[feature] -= remove_value
+                if feature == 44:
+                    print('remove', n, remove_value, m)
         return E
     _inference()
     return V
@@ -168,10 +177,12 @@ if __name__ == "__main__":
     from shap import TreeExplainer as Truth
     import numpy as np
     np.random.seed(10)
-    x, y = make_regression(1000, n_features=10)
-    clf = DecisionTreeRegressor(max_depth=13).fit(x, y)
+    x, y = make_regression(10000, n_features=100)
+    clf = DecisionTreeRegressor(max_depth=16).fit(x, y)
     sim = Truth(clf)
     mine = TreeExplainer(clf)
-    a = mine.py_shap_values(x[0:1])
-    b = sim.shap_values(x[0:1])[0]
+    a = mine.py_shap_values(x[12][None, :])
+    print('0000000000')
+    a = mine.py_shap_values(x[11][None, :])
+    b = sim.shap_values(x[12][None,:])[0]
     np.testing.assert_array_almost_equal(a, b, 5)
