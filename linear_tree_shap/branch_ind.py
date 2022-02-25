@@ -52,9 +52,6 @@ def collect_branches(tree, branch_info=None, node=0, branches=None):
 
 def psi(E, q, f):
     poly, rem = np.polydiv(E, q)
-    if f == 44:
-        if rem[0] > 0.00000001:
-            print(rem, E, q)
     degree = poly.shape[0]
     return poly.dot(1./N(degree-1))/degree
 
@@ -74,7 +71,6 @@ def shapely_value(branches, x, values):
         in_branch = np.logical_and(lower_bounds <= x[features], x[features] < upper_bounds)
         Q = np.where(in_branch, 1/weights, 0)
         Q = np.vstack([np.ones_like(Q), Q]).T
-        import ipdb; ipdb.set_trace()
         E = reduce(np.polymul, Q)*Be
         for f, q in zip(features, Q):
             values[f] += (q[1]-1)*psi(E, q, f)
@@ -96,6 +92,6 @@ if __name__ == "__main__":
     branches = collect_branches(clf.tree_)
     a = np.zeros_like(x[12])
     b = sim.shap_values(x[12][None,:])[0]
-    shapely_value(branches, x[12], -b)
+    shapely_value(branches, x[12], a)
     np.testing.assert_array_almost_equal(a, b, 5)
     print(a[44])
