@@ -11,6 +11,7 @@
 using namespace std;
 
 typedef double tfloat;
+typedef long double tdouble;
 
 struct Tree {
     tfloat *weights;
@@ -48,8 +49,9 @@ struct BioCoeff {
         return C+i*col;
     }
 
-    tfloat psi(tfloat* E, tfloat q, int e_size, int d) {
-	 tfloat res=0., quo = 0.;
+    tfloat psi(tdouble* E, tdouble q, int e_size, int d) {
+	 tfloat res=0.;
+	 tdouble quo = 0.;
 	 tfloat *n = get_n(d);
 	 for(int i=0; i<d+1; i++){
 		if (i<e_size){
@@ -75,7 +77,7 @@ struct Dataset {
     }
 };
 
-void polymul(tfloat * C, tfloat q, int c_size, tfloat * out){
+void polymul(tdouble * C, tdouble q, int c_size, tdouble * out){
     tfloat tmp = 0.;
     for(int i=0; i<c_size; i++){
 	    out[i] = C[i] + q*tmp;
@@ -84,7 +86,7 @@ void polymul(tfloat * C, tfloat q, int c_size, tfloat * out){
     out[c_size] = q*tmp;
 };
 
-void polyquo(tfloat * C, tfloat q, int c_size, tfloat * out){
+void polyquo(tdouble * C, tdouble q, int c_size, tdouble * out){
     tfloat tmp = 0.;
     for(int i=0; i<c_size-1; i++){
 	    tmp = C[i] - q*tmp;
@@ -92,19 +94,19 @@ void polyquo(tfloat * C, tfloat q, int c_size, tfloat * out){
     }
 };
 
-void multiply(tfloat * input, tfloat *output, tfloat scalar, int size){
+void multiply(tdouble * input, tdouble *output, tfloat scalar, int size){
     for(int i =0; i<size; i++){
 	    output[i] = input[i]*scalar;
     }
 };
 
-void sum(tfloat * input, tfloat* output, int size){
+void sum(tdouble * input, tdouble* output, int size){
     for(int i =0; i<size; i++){
 	    output[i] += input[i];
     }
 };
 
-void copy(tfloat *from, tfloat *to, int size){
+void copy(tdouble *from, tdouble *to, int size){
     for (int i=0; i<size; i++){
 	    to[i] = from[i];
     }
@@ -115,21 +117,21 @@ void inference(const Tree& tree,
 	      bool *A, 
 	      tfloat* V, 
 	      BioCoeff& N, 
-	      tfloat* C, 
-	      tfloat* E, 
+	      tdouble* C, 
+	      tdouble* E, 
 	      tfloat* x,
 	      int n=0,
 	      int feature=-1,
 	      int depth=0,              
 	      int prev_c_size=0){
-    tfloat q = -1.;
-    tfloat s = -1.;
+    tdouble q = -1.;
+    tdouble s = -1.;
     int m = tree.parents[n];
     int left = tree.children_left[n];
     int right = tree.children_right[n];
-    tfloat *current_c = C+depth*tree.max_depth;
-    tfloat *current_e = E+depth*tree.max_depth;
-    tfloat *child_e = E+(depth+1)*tree.max_depth;
+    tdouble *current_c = C+depth*tree.max_depth;
+    tdouble *current_e = E+depth*tree.max_depth;
+    tdouble *child_e = E+(depth+1)*tree.max_depth;
     int current_c_size = prev_c_size + 1;
     if(x[tree.features[n]] <= tree.thresholds[n]){
 	 A[left] = true;
@@ -148,7 +150,7 @@ void inference(const Tree& tree,
          if (A[n]) {
              q = 1/tree.weights[n]-1;
          }
-	     tfloat *prev_c = C+(depth-1)*tree.max_depth;
+	     tdouble *prev_c = C+(depth-1)*tree.max_depth;
              polymul(prev_c, q, prev_c_size, current_c);
 
 	     if (m >= 0){
@@ -185,8 +187,8 @@ inline void linear_tree_shap(const Tree& tree,
 			     Dataset& data, 
 			     Dataset& out,
                		     BioCoeff& N){
-    tfloat * C = new tfloat[tree.max_depth*tree.max_depth];
-    tfloat * E = new tfloat[tree.max_depth*tree.max_depth];
+    tdouble * C = new tdouble[tree.max_depth*tree.max_depth];
+    tdouble * E = new tdouble[tree.max_depth*tree.max_depth];
     bool *A = new bool[tree.num_nodes];
     for (unsigned i=0; i<data.row; i++)
     {
