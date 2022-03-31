@@ -1,13 +1,16 @@
 # Linear Tree Shap
 ---
-Compute exact shapley value for decision trees in Linear time.
+Compute exact Shapley value for decision trees in Linear time.
 
-For tree with maximum depth D, and number of leafs L. 
-We compute the shapely value is O(LD) time, without the need of extra memory.
+For a tree with maximum depth D, the number of leaves L. 
+We compute the shapely value is O(LD) time, without the need for extra memory.
 
-# Numerical problems
+### Numerical problems
 ---
-When tree depth exceed 12, with `double` type, there are chances to running into overflow.
-which can be mitigated using `long double` data type.
+- tree depth exceeds 12; there are chances of overflow with `double` data type.
+It can be mitigated using `long double` data type.
+- tree depth exceeds 16; even with the `long double` type, there are still chances to overflow. 
+It can still be mitigated using the `fraction` data type.
+
 
 
