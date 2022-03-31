@@ -159,7 +159,7 @@ static PyObject *_cext_linear_tree_shap(PyObject *self, PyObject *args)
     linear_tree_shap(tree, data, out, N);
 
     // retrieve return value before python cleanup of objects
-    tfloat ret_value = (double)out_contribs[0];
+    tfloat ret_value = (double)leaf_predictions[0];
     // clean up the created python objects 
     Py_XDECREF(children_left_array);
     Py_XDECREF(children_right_array);

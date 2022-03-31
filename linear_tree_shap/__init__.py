@@ -126,17 +126,10 @@ def inference(tree, A, V, N):
         e = E[depth, :tree.edge_heights[n]+1]
         if feature >= 0:
             add_value = q*psi(e, q, tree.edge_heights[n]+1, tree.edge_heights[n]-1, N)
-            if feature == 44:
-                print('add', n, add_value, m)
             V[feature] += add_value
             if m >= 0:
-                if n == 6:
-                    print(s, e, tree.edge_heights[n]+1, tree.edge_heights[m]-1)
-                    import ipdb; ipdb.set_trace()
                 remove_value = s*psi(e, s, tree.edge_heights[n]+1, tree.edge_heights[m]-1, N)
                 V[feature] -= remove_value
-                if feature == 44:
-                    print('remove', n, remove_value, m)
         return E
     _inference()
     return V
@@ -181,8 +174,9 @@ if __name__ == "__main__":
     clf = DecisionTreeRegressor(max_depth=16).fit(x, y)
     sim = Truth(clf)
     mine = TreeExplainer(clf)
-    a = mine.py_shap_values(x[12][None, :])
+    a = mine.shap_values(x[11][None, :])
     print('0000000000')
-    a = mine.py_shap_values(x[11][None, :])
-    b = sim.shap_values(x[12][None,:])[0]
-    np.testing.assert_array_almost_equal(a, b, 5)
+    for i in range(5):
+        a = mine.shap_values(x[11][None, :])[0]
+        b = sim.shap_values(x[11][None,:])[0]
+        np.testing.assert_array_almost_equal(a, b, 3)

@@ -1,4 +1,3 @@
-import pytest
 import numpy as np
 from sklearn.datasets import make_regression
 from sklearn.tree import DecisionTreeRegressor
@@ -6,6 +5,7 @@ from linear_tree_shap import TreeExplainer
 from shap import TreeExplainer as Truth
 import pandas as pd
 from sklearn.model_selection import train_test_split
+import time
 
 def dummy_transform(df):
     categorical_feature_names = ["workclass", "education", "marital-status", "occupation", "relationship", "race", "sex"]
@@ -25,7 +25,7 @@ def load_conductor():
     label_test = test["critical_temp"]
     train = train.iloc[:, :-1]
     test = test.iloc[:, :-1]
-    return train.values, label_train, test.values
+    return 'conductor', train.values.astype(np.float64), label_train, test.values.astype(np.float64)
 
 def load_adult():
     data_path = '/Users/pengyu/Downloads/Fast_TreeSHAP_Code/dataset/adult'
@@ -41,40 +41,27 @@ def load_adult():
     test.columns = feature_names
     train = dummy_transform(train)
     test = dummy_transform(test)
-    return train.values, label_train, test.values
+    return 'adult', train.values.astype(np.float64), label_train, test.values.astype(np.float64)
+
+def main():
+    for name, train_x, train_y, test_x in [load_adult(), 
+                                           load_conductor()]:
+        for depth in [8, 12, 16]:
+            clf = DecisionTreeRegressor(max_depth=depth).fit(train_x, train_y)
+            linear = TreeExplainer(clf)
+            fast = Truth(clf)
+            linear_time = time.time()
+            test_x = train_x
+            linear_result = linear.shap_values(test_x)
+            linear_time = time.time()-linear_time
+            fast_time = time.time()
+            fast_result = fast.shap_values(test_x)
+            fast_time = time.time()-fast_time
+            #print(name, 'fast', depth, fast_time)
+            print(name, 'linear', depth, linear_time)
+            print(depth, linear_result[0], fast_result[0])
+            np.testing.assert_array_almost_equal(linear_result, fast_result, 2)
 
 
-@pytest.fixture(params=['adult', 'conductor'])
-def data(request):
-    if request.param == 'adult':
-        return load_adult()
-    elif request.param == 'conductor':
-        return load_conductor()
-
-@pytest.fixture(params=[2, 4, 8, 12, 16])
-def tree(data, request):
-    x, y, x_test = data
-    return DecisionTreeRegressor(max_depth=request.param).fit(x, y)
-
-@pytest.fixture
-def linear_treeshap(tree):
-    return TreeExplainer(tree)
-
-@pytest.fixture
-def treeshap(tree):
-    return Truth(tree)
-
-def test_benchmark_linear_treeshap(data, linear_treeshap, benchmark):
-    x, y, x_test = data
-    benchmark(linear_treeshap.shap_values, x_test)
-
-def test_benchmark_fast_treeshap(data, treeshap, benchmark):
-    x, y, x_test = data
-    benchmark(treeshap.shap_values, x_test, check_additivity=False)
-
-#def test_correctness_linear_treeshap(data, linear_treeshap, treeshap, tree):
-#    x, y, x_test = data
-#    actual = linear_treeshap.shap_values(x_test)
-#    expected = treeshap.shap_values(x_test)
-#    if tree.max_depth < 10:
-#        np.testing.assert_array_almost_equal(actual, expected, 2)
+if __name__ == "__main__":
+    main()
