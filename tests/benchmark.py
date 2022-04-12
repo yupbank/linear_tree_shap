@@ -46,21 +46,22 @@ def load_adult():
 def main():
     for name, train_x, train_y, test_x in [load_adult(), 
                                            load_conductor()]:
-        for depth in [8, 12, 16]:
-            clf = DecisionTreeRegressor(max_depth=depth).fit(train_x, train_y)
-            linear = TreeExplainer(clf)
-            fast = Truth(clf)
-            linear_time = time.time()
-            test_x = train_x
-            linear_result = linear.shap_values(test_x)
-            linear_time = time.time()-linear_time
-            fast_time = time.time()
-            fast_result = fast.shap_values(test_x)
-            fast_time = time.time()-fast_time
-            #print(name, 'fast', depth, fast_time)
-            print(name, 'linear', depth, linear_time)
-            print(depth, linear_result[0], fast_result[0])
-            np.testing.assert_array_almost_equal(linear_result, fast_result, 2)
+        for i in range(5):
+            for depth in [4, 8, 12, 16]:
+                clf = DecisionTreeRegressor(max_depth=depth).fit(train_x, train_y)
+                linear = TreeExplainer(clf)
+                fast = Truth(clf)
+                linear_time = time.time()
+                test_x = train_x
+                linear_result = linear.shap_values(test_x)
+                linear_time = time.time()-linear_time
+                print('round:%s'%i, name, 'linear', depth, linear_time)
+                #fast_time = time.time()
+                #fast_result = fast.shap_values(test_x)
+                #fast_time = time.time()-fast_time
+                #print(name, 'fast', depth, fast_time)
+                #print(linear_result[0], fast_result[0])
+                #np.testing.assert_array_almost_equal(linear_result, fast_result, 2)
 
 
 if __name__ == "__main__":

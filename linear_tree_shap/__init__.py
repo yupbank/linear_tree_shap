@@ -1,40 +1,6 @@
 import numpy as np
-import scipy.special as sp
-from collections import namedtuple
 from functools import reduce
-Tree = namedtuple('Tree', 
-                'weights,leaf_predictions,parents,edge_heights,features,children_left,children_right,thresholds,max_depth,num_nodes')
-
-def copy_tree(tree):
-    weights = np.ones_like(tree.threshold)
-    leaf_predictions = np.zeros_like(tree.threshold)
-    parents = np.full_like(tree.children_left, -1)
-    edge_heights = np.zeros_like(tree.children_left)
-    
-    def _recursive_copy(node=0, feature=None, 
-                        parent_samples=None, prod_weight=1.0, 
-                        seen_features=dict()):
-        n_sample, child_left, child_right = (tree.n_node_samples[node],
-                            tree.children_left[node], tree.children_right[node])
-        if feature is not None:
-            weight = n_sample/parent_samples
-            prod_weight *= weight
-            if feature in seen_features:
-                parents[node] = seen_features[feature]
-                weight *= weights[seen_features[feature]]
-            weights[node] = weight
-            seen_features[feature] = node
-        if child_left >= 0: # not leaf
-            left_max_features = _recursive_copy(child_left, tree.feature[node], n_sample, prod_weight, seen_features.copy())
-            right_max_features = _recursive_copy(child_right, tree.feature[node], n_sample, prod_weight, seen_features.copy())
-            edge_heights[node] = max(left_max_features, right_max_features)
-            return edge_heights[node]
-        else:               # is leaf
-            leaf_predictions[node] =  prod_weight*tree.value[node].ravel()[0]
-            edge_heights[node] = len(seen_features)
-            return edge_heights[node]
-    _recursive_copy()
-    return Tree(weights, leaf_predictions, parents, edge_heights, tree.feature, tree.children_left, tree.children_right, tree.threshold, tree.max_depth+2, tree.children_left.shape[0])
+from utils import copy_tree, get_N_prime
 
 
 def get_activation(tree, x):
@@ -44,23 +10,6 @@ def get_activation(tree, x):
     edge_active[:, tree.children_right[node_mask]] = x[:, tree.features[node_mask]] > tree.thresholds[node_mask]
     return edge_active
 
-def get_norm_weight(M):
-    return np.array([sp.binom(M, i) for i in range(M + 1)])
-
-def get_N(max_size=10):
-    N = np.zeros((max_size, max_size))
-    for i in range(max_size):
-        N[i,:i+1] = get_norm_weight(i)
-    return N
-
-def get_N_prime(max_size=10):
-    N = np.zeros((max_size, max_size))
-    for i in range(max_size):
-        N[i,:i+1] = get_norm_weight(i)
-    N_prime = np.zeros((max_size, max_size))
-    for i in range(max_size):
-        N_prime[i,:i+1] = N[:i+1, :i+1].dot(1/N[i, :i+1])
-    return N_prime
    
 def oplus(El, Er):
     dl = El.shape[0]
@@ -102,7 +51,6 @@ def inference(tree, A, V, N):
         s = -1
         m = tree.parents[n]
         left, right = tree.children_left[n], tree.children_right[n]
-        c = C[depth-1, :c_size]
         c_size += 1
         if feature >= 0:
             if m >= 0:
@@ -111,21 +59,28 @@ def inference(tree, A, V, N):
                     s = 1/tree.weights[m] - 1
             if A[n]:
                 q = 1/tree.weights[n] - 1
-            polymul(c, q, C[depth, :c_size])
+            polymul(C[depth-1, :c_size-1], q, C[depth, :c_size])
             if m >= 0:
                 c_size -= 1
                 polyquo(C[depth, :c_size+1], s, C[depth, :c_size])
         if left >= 0:
-            E_l = _inference(left, tree.features[n], depth+1, c_size)
-            E[depth, :tree.edge_heights[left]+1] = E[depth+1, :tree.edge_heights[left]+1]
-            E_r = _inference(right, tree.features[n], depth+1, c_size)
-            E[depth, :tree.edge_heights[n]+1] = oplus(E[depth, :tree.edge_heights[left]+1], 
-                                                      E[depth+1, :tree.edge_heights[right]+1])
+            if tree.edge_heights[left] > tree.edge_heights[right]:
+                first, second = left, right
+            else:
+                first, second = right, left
+            E_l = _inference(first, tree.features[n], depth+1, c_size)
+            E[depth, :tree.edge_heights[first]+1] = E[depth+1, :tree.edge_heights[first]+1]
+            E_r = _inference(second, tree.features[n], depth+1, c_size)
+            E[depth, :tree.edge_heights[n]+1] = oplus(E[depth, :tree.edge_heights[first]+1], 
+                                                      E[depth+1, :tree.edge_heights[second]+1])
         else:
             E[depth, :tree.edge_heights[n]+1] = tree.leaf_predictions[n]*C[depth, :c_size]
         e = E[depth, :tree.edge_heights[n]+1]
         if feature >= 0:
             add_value = q*psi(e, q, tree.edge_heights[n]+1, tree.edge_heights[n]-1, N)
+            #print(n, add_value, e, q)
+            if n==126:
+                print(A[n], m, A[m])
             V[feature] += add_value
             if m >= 0:
                 remove_value = s*psi(e, s, tree.edge_heights[n]+1, tree.edge_heights[m]-1, N)
@@ -170,13 +125,10 @@ if __name__ == "__main__":
     from shap import TreeExplainer as Truth
     import numpy as np
     np.random.seed(10)
-    x, y = make_regression(10000, n_features=100)
-    clf = DecisionTreeRegressor(max_depth=16).fit(x, y)
+    x, y = make_regression(1000, n_features=10)
+    clf = DecisionTreeRegressor(max_depth=6).fit(x, y)
     sim = Truth(clf)
     mine = TreeExplainer(clf)
-    a = mine.shap_values(x[11][None, :])
-    print('0000000000')
-    for i in range(5):
-        a = mine.shap_values(x[11][None, :])[0]
-        b = sim.shap_values(x[11][None,:])[0]
-        np.testing.assert_array_almost_equal(a, b, 3)
+    a = mine.py_shap_values(x[4][None, :])
+    b = sim.shap_values(x[4][None,:])[0]
+    np.testing.assert_array_almost_equal(a, b, 3)

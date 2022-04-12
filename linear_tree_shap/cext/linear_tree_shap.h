@@ -149,10 +149,10 @@ void inference(const Tree& tree,
              q = 1/tree.weights[n]-1;
          }
 	     tfloat *prev_c = C+(depth-1)*tree.max_depth;
-             polymul(prev_c, q, prev_c_size, current_c);
+         polymul(prev_c, q, prev_c_size, current_c);
 
 	     if (m >= 0){
-               polyquo(current_c, s, current_c_size, current_c);
+           polyquo(current_c, s, current_c_size, current_c);
 	       current_c_size -= 1;
 	     }
     }
