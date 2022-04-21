@@ -3,20 +3,21 @@ from utils import copy_tree, get_N_prime
 import numpy as np
 import numba 
 
-@numba.njit
+#@numba.njit
 def polymul(X, a, Out, Out_len):
     Out[0] = X[0]
     for i in range(1, Out_len-1):
         Out[i] = X[i] + a*X[i-1]
     Out[Out_len-1] = a*X[Out_len-2]
 
-@numba.njit
+#@numba.njit
 def polyquo(X, a, Out, Out_len):
+    print(a)
     Out[0] = X[0]
     for i in range(1, Out_len):
         Out[i] =  X[i]- Out[i-1]*a
 
-@numba.njit
+#@numba.njit
 def psi(E, q, n, e_size, d):
     res = 0
     quo = 0
@@ -29,7 +30,7 @@ def psi(E, q, n, e_size, d):
     return res/(d+1)
 
 
-@numba.jit
+#@numba.jit
 def _inference(weights,
               leaf_predictions,
               parents, 
@@ -124,7 +125,6 @@ def _inference(weights,
             parent_height = edge_heights[parent]
             result[edge_feature] -= s_eff*psi(E[depth], s_eff, N[parent_height-1], current_height+1, parent_height-1)
 
-@numba.njit
 def fast_inference(tree, C, E, N, result, activation, x):
     for i in range(x.shape[0]):
         _inference(tree.weights,
@@ -175,6 +175,6 @@ if __name__ == "__main__":
     clf = DecisionTreeRegressor(max_depth=6).fit(x, y)
     sim = Truth(clf)
     mine_tree = copy_tree(clf.tree_)
-    result = inference(mine_tree, x)
-    b = sim.shap_values(x)
+    result = inference(mine_tree, x[:2])
+    b = sim.shap_values(x[:2])
     np.testing.assert_array_almost_equal(result, b, 3)

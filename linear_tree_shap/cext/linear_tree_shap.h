@@ -131,12 +131,14 @@ void inference(const Tree& tree,
     tfloat *current_e = E+depth*tree.max_depth;
     tfloat *child_e = E+(depth+1)*tree.max_depth;
     int current_c_size = prev_c_size + 1;
-    if(x[tree.features[n]] <= tree.thresholds[n]){
-	 A[left] = true;
-	 A[right] = false;
-    } else{
-	 A[left] = false;
-	 A[right] = true;
+    if (left >= 0){
+        if(x[tree.features[n]] <= tree.thresholds[n]){
+             A[left] = true;
+             A[right] = false;
+        } else{
+             A[left] = false;
+             A[right] = true;
+        }
     }
     if (feature >= 0){
          if (m >= 0) {

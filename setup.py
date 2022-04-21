@@ -34,7 +34,7 @@ def run_setup():
         license='MIT',
         packages=[
             'linear_tree_shap'],
-        package_data={'linear_tree_shap': ['cext/linear_tree_shap.h']},
+        package_data={'linear_tree_shap': ['cext/linear_tree_shap.h', 'cext/linear_tree_shap_v2.h']},
         cmdclass={'build_ext': build_ext},
         setup_requires=['numpy'],
         install_requires=['numpy', 'scipy', 'scikit-learn', 'pandas', 'tqdm>4.25.0', # numpy versions are for numba

@@ -2,7 +2,9 @@ import pytest
 import numpy as np
 from sklearn.datasets import make_regression
 from sklearn.tree import DecisionTreeRegressor
-from linear_tree_shap import TreeExplainer
+import linear_tree_shap 
+import fasttreeshap
+import shap
 from shap import TreeExplainer as Truth
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -51,30 +53,37 @@ def data(request):
     elif request.param == 'conductor':
         return load_conductor()
 
-@pytest.fixture(params=[2, 4, 8, 12, 16])
+@pytest.fixture(params=[2, 4, 6, 8, 10, 12])
 def tree(data, request):
     x, y, x_test = data
     return DecisionTreeRegressor(max_depth=request.param).fit(x, y)
 
 @pytest.fixture
 def linear_treeshap(tree):
-    return TreeExplainer(tree)
+    return linear_tree_shap.TreeExplainer(tree)
 
 @pytest.fixture
 def treeshap(tree):
-    return Truth(tree)
+    return shap.TreeExplainer(tree)
+
+@pytest.fixture
+def fast_treeshap(tree):
+    return fasttreeshap.TreeExplainer(tree, algorithm='v2', n_jobs=1)
 
 def test_benchmark_linear_treeshap(data, linear_treeshap, benchmark):
     x, y, x_test = data
-    benchmark(linear_treeshap.shap_values, x_test)
+    benchmark(linear_treeshap.shap_values_v2, x_test)
 
-def test_benchmark_fast_treeshap(data, treeshap, benchmark):
+def test_benchmark_treeshap(data, treeshap, benchmark):
     x, y, x_test = data
     benchmark(treeshap.shap_values, x_test, check_additivity=False)
 
-#def test_correctness_linear_treeshap(data, linear_treeshap, treeshap, tree):
-#    x, y, x_test = data
-#    actual = linear_treeshap.shap_values(x_test)
-#    expected = treeshap.shap_values(x_test)
-#    if tree.max_depth < 10:
-#        np.testing.assert_array_almost_equal(actual, expected, 2)
+def test_benchmark_fast_treeshap(data, fast_treeshap, benchmark):
+    x, y, x_test = data
+    benchmark(fast_treeshap.shap_values, x_test, check_additivity=False)
+
+def test_correctness_linear_treeshap(data, linear_treeshap, treeshap, tree):
+    x, y, x_test = data
+    actual = linear_treeshap.shap_values(x_test)
+    expected = treeshap.shap_values(x_test)
+    np.testing.assert_array_almost_equal(actual, expected, 2)

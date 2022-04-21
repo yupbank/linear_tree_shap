@@ -1,8 +1,8 @@
 import numpy as np
 from sklearn.datasets import make_regression
 from sklearn.tree import DecisionTreeRegressor
-from linear_tree_shap import TreeExplainer
-from shap import TreeExplainer as Truth
+import linear_tree_shap
+import fasttreeshap
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import time
@@ -47,21 +47,23 @@ def main():
     for name, train_x, train_y, test_x in [load_adult(), 
                                            load_conductor()]:
         for i in range(5):
-            for depth in [4, 8, 12, 16]:
+            for depth in [2, 4, 8, 12, 16]:
                 clf = DecisionTreeRegressor(max_depth=depth).fit(train_x, train_y)
-                linear = TreeExplainer(clf)
-                fast = Truth(clf)
+                linear = linear_tree_shap.TreeExplainer(clf)
+                fast = fasttreeshap.TreeExplainer(clf, algorithm='v2', n_jobs=1)
                 linear_time = time.time()
                 test_x = train_x
                 linear_result = linear.shap_values(test_x)
                 linear_time = time.time()-linear_time
                 print('round:%s'%i, name, 'linear', depth, linear_time)
-                #fast_time = time.time()
-                #fast_result = fast.shap_values(test_x)
-                #fast_time = time.time()-fast_time
-                #print(name, 'fast', depth, fast_time)
-                #print(linear_result[0], fast_result[0])
-                #np.testing.assert_array_almost_equal(linear_result, fast_result, 2)
+                fast_time = time.time()
+                fast_result = fast.shap_values(test_x)
+                fast_time = time.time()-fast_time
+                print(name, 'fast', depth, fast_time)
+                try:
+                    np.testing.assert_array_almost_equal(linear_result, fast_result, 2)
+                except Exception as e:
+                    print(e)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 import numpy as np
 from functools import reduce
-from utils import copy_tree, get_N_prime
+from linear_tree_shap.utils import copy_tree, get_N_prime
 
 
 def get_activation(tree, x):
@@ -105,6 +105,23 @@ class TreeExplainer:
         from linear_tree_shap import _cext
         V = np.zeros_like(X)
         _cext.linear_tree_shap(
+                               self.tree.weights, 
+                               self.tree.leaf_predictions, 
+                               self.tree.thresholds, 
+                               self.tree.parents.astype(np.int32), 
+                               self.tree.edge_heights.astype(np.int32), 
+                               self.tree.features.astype(np.int32), 
+                               self.tree.children_left.astype(np.int32), 
+                               self.tree.children_right.astype(np.int32), 
+                               self.tree.max_depth,
+                               self.tree.num_nodes,
+                               self.N, X, V)
+        return V
+    
+    def shap_values_v2(self, X):
+        from linear_tree_shap import _cext
+        V = np.zeros_like(X)
+        _cext.linear_tree_shap_v2(
                                self.tree.weights, 
                                self.tree.leaf_predictions, 
                                self.tree.thresholds, 
