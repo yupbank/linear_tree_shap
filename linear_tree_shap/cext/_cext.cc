@@ -2,8 +2,7 @@
 
 #include <Python.h>
 #include <numpy/arrayobject.h>
-#include "linear_tree_shap.h"
-#include "linear_tree_shap_v2.h"
+#include "linear_tree_shap_v3.h"
 
 static PyObject *_cext_linear_tree_shap(PyObject *self, PyObject *args);
 static PyObject *_cext_linear_tree_shap_v2(PyObject *self, PyObject *args);
@@ -84,7 +83,6 @@ static PyObject *_cext_linear_tree_shap(PyObject *self, PyObject *args)
 	&X_obj,
     &out_contribs_obj
     )) return NULL;
-
     /* Interpret the input objects as numpy arrays. */
     PyArrayObject *weights_array = (PyArrayObject*)PyArray_FROM_OTF(weights_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
     PyArrayObject *leaf_predictions_array = (PyArrayObject*)PyArray_FROM_OTF(leaf_predictions_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
@@ -193,13 +191,15 @@ static PyObject *_cext_linear_tree_shap_v2(PyObject *self, PyObject *args)
     PyObject *children_right_obj;
     int max_depth;
     int num_nodes;
+    PyObject *base_obj;    
+    PyObject *offset_obj; 
     PyObject *norm_obj; 
     PyObject *X_obj;
     PyObject *out_contribs_obj;
 
     /* Parse the input tuple */
     if (!PyArg_ParseTuple(
-        args, "OOOOOOOOiiOOO", 
+        args, "OOOOOOOOiiOOOOO", 
 	&weights_obj, 
 	&leaf_predictions_obj,
 	&thresholds_obj,
@@ -210,6 +210,8 @@ static PyObject *_cext_linear_tree_shap_v2(PyObject *self, PyObject *args)
 	&children_right_obj,
     &max_depth,
     &num_nodes,
+	&base_obj, 
+    &offset_obj, 
 	&norm_obj, 
 	&X_obj,
     &out_contribs_obj
@@ -225,6 +227,8 @@ static PyObject *_cext_linear_tree_shap_v2(PyObject *self, PyObject *args)
     PyArrayObject *children_left_array = (PyArrayObject*)PyArray_FROM_OTF(children_left_obj, NPY_INT, NPY_ARRAY_IN_ARRAY);
     PyArrayObject *children_right_array = (PyArrayObject*)PyArray_FROM_OTF(children_right_obj, NPY_INT, NPY_ARRAY_IN_ARRAY);
 
+    PyArrayObject *base_array = (PyArrayObject*)PyArray_FROM_OTF(base_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    PyArrayObject *offset_array = (PyArrayObject*)PyArray_FROM_OTF(offset_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
     PyArrayObject *norm_array = (PyArrayObject*)PyArray_FROM_OTF(norm_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
     PyArrayObject *X_array = (PyArrayObject*)PyArray_FROM_OTF(X_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
     PyArrayObject *out_contribs_array = (PyArrayObject*)PyArray_FROM_OTF(out_contribs_obj, NPY_DOUBLE, NPY_ARRAY_INOUT_ARRAY);
@@ -234,7 +238,8 @@ static PyObject *_cext_linear_tree_shap_v2(PyObject *self, PyObject *args)
         features_array == NULL || leaf_predictions_array == NULL || 
 	thresholds_array == NULL ||
         edge_heights_array == NULL || parents_array == NULL || 
-	weights_array == NULL || norm_array == NULL ||
+	weights_array == NULL || norm_array == NULL || base_array == NULL ||
+    offset_array == NULL || 
 	X_array == NULL || out_contribs_array == NULL
 	) {
         Py_XDECREF(children_left_array);
@@ -245,6 +250,8 @@ static PyObject *_cext_linear_tree_shap_v2(PyObject *self, PyObject *args)
         Py_XDECREF(edge_heights_array);
         Py_XDECREF(parents_array);
         Py_XDECREF(weights_array);
+        Py_XDECREF(base_array);
+        Py_XDECREF(offset_array);
         Py_XDECREF(norm_array);
         Py_XDECREF(X_array);
         //PyArray_ResolveWritebackIfCopy(out_contribs_array);
@@ -261,6 +268,8 @@ static PyObject *_cext_linear_tree_shap_v2(PyObject *self, PyObject *args)
     int *features = (int*)PyArray_DATA(features_array);
     int *children_left = (int*)PyArray_DATA(children_left_array);
     int *children_right = (int*)PyArray_DATA(children_right_array);
+    tfloat *base  = (tfloat*)PyArray_DATA(base_array);
+    tfloat *offset  = (tfloat*)PyArray_DATA(offset_array);
     tfloat *norm  = (tfloat*)PyArray_DATA(norm_array);
     tfloat *X = (tfloat*)PyArray_DATA(X_array);
     tfloat *out_contribs = (tfloat*)PyArray_DATA(out_contribs_array);
@@ -275,21 +284,13 @@ static PyObject *_cext_linear_tree_shap_v2(PyObject *self, PyObject *args)
         children_left, children_right,
         max_depth, num_nodes
     );
-    //const unsigned num_x = pyarray_dim(a_array, 0);
-    //const unsigned m = pyarray_dim(a_array, 1);
-    //Activation data = Activation(A, num_X, M);
 
-    const unsigned col_n = PyArray_DIM(norm_array, 1);
     const unsigned row_x = PyArray_DIM(X_array, 0);
     const unsigned col_x = PyArray_DIM(X_array, 1);
 
-    linear_tree_shap_v2(weights, leaf_predictions, thresholds,
-	                parents, edge_heights,
-	                features, 
-                        children_left, children_right,
-                        max_depth, num_nodes,
-			X, row_x, col_x, out_contribs,
-			norm, col_n);
+    linear_tree_shap_v2(tree, base, offset, norm,
+			X, row_x, col_x, out_contribs
+			);
 
     // retrieve return value before python cleanup of objects
     tfloat ret_value = (double)leaf_predictions[0];
@@ -302,6 +303,9 @@ static PyObject *_cext_linear_tree_shap_v2(PyObject *self, PyObject *args)
     Py_XDECREF(edge_heights_array);
     Py_XDECREF(parents_array);
     Py_XDECREF(weights_array);
+    Py_XDECREF(base_array);
+    Py_XDECREF(offset_array);
+    Py_XDECREF(norm_array);
 
     Py_XDECREF(X_array);
     Py_XDECREF(out_contribs_array);

@@ -127,9 +127,9 @@ void inference(const Tree& tree,
     int m = tree.parents[n];
     int left = tree.children_left[n];
     int right = tree.children_right[n];
-    tfloat *current_c = C+depth*tree.max_depth;
-    tfloat *current_e = E+depth*tree.max_depth;
-    tfloat *child_e = E+(depth+1)*tree.max_depth;
+    tfloat *current_c = C+depth*(tree.max_depth+2);
+    tfloat *current_e = E+depth*(tree.max_depth+2);
+    tfloat *child_e = E+(depth+1)*(tree.max_depth+2);
     int current_c_size = prev_c_size + 1;
     if (left >= 0){
         if(x[tree.features[n]] <= tree.thresholds[n]){
@@ -150,7 +150,7 @@ void inference(const Tree& tree,
          if (A[n]) {
              q = 1/tree.weights[n]-1;
          }
-	     tfloat *prev_c = C+(depth-1)*tree.max_depth;
+	 tfloat *prev_c = C+(depth-1)*(tree.max_depth+2);
          polymul(prev_c, q, prev_c_size, current_c);
 
 	     if (m >= 0){
@@ -187,8 +187,9 @@ inline void linear_tree_shap(const Tree& tree,
 			     Dataset& data, 
 			     Dataset& out,
                		     BioCoeff& N){
-    tfloat * C = new tfloat[tree.max_depth*tree.max_depth];
-    tfloat * E = new tfloat[tree.max_depth*tree.max_depth];
+    int size = (tree.max_depth+2)*(tree.max_depth+2);
+    tfloat * C = new tfloat[size];
+    tfloat * E = new tfloat[size];
     bool *A = new bool[tree.num_nodes];
     for (unsigned i=0; i<data.row; i++)
     {

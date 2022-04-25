@@ -1,6 +1,6 @@
 import numpy as np
 from functools import reduce
-from linear_tree_shap.utils import copy_tree, get_N_prime
+from linear_tree_shap.utils import copy_tree, get_N_prime, get_N_v2
 
 
 def get_activation(tree, x):
@@ -94,7 +94,9 @@ class TreeExplainer:
         self.clf = clf
         self.tree = copy_tree(clf.tree_)
         self.N = get_N_prime(self.tree.max_depth)
-
+        self.Base = np.polynomial.chebyshev.chebpts2(self.tree.max_depth)
+        self.Offset = np.vander(self.Base+1).T[::-1]
+        self.N_v2 = get_N_v2(self.Base)
 
     def py_shap_values(self, x):
         V = np.zeros_like(x)
@@ -132,7 +134,7 @@ class TreeExplainer:
                                self.tree.children_right.astype(np.int32), 
                                self.tree.max_depth,
                                self.tree.num_nodes,
-                               self.N, X, V)
+                               self.Base, self.Offset, self.N_v2, X, V)
         return V
 
 

@@ -8,9 +8,9 @@ import time
 np.seterr(divide='raise')
 
 @numba.jit
-def psi(E, D, q, Ns, d):
+def psi(E, D_power, D, q, Ns, d):
     n = Ns[d, :d]
-    return ((E/(D+q))[:d]).dot(n)/d
+    return ((E*D_power/(D+q))[:d]).dot(n)/d
 
 @numba.jit
 def _inference(weights,
@@ -102,10 +102,10 @@ def _inference(weights,
 
 
     if edge_feature >= 0:
-        value = (q_eff-1)*psi(E[depth], D, q_eff, Ns, current_height)
+        value = (q_eff-1)*psi(E[depth], D_powers[0], D, q_eff, Ns, current_height)
         result[edge_feature] += value
         if parent >= 0:
-            value = (s_eff-1)*psi(E[depth]*D_powers[parent_height-current_height], D, s_eff, Ns, parent_height)
+            value = (s_eff-1)*psi(E[depth], D_powers[parent_height-current_height], D, s_eff, Ns, parent_height)
             result[edge_feature] -= value
 
 @numba.jit

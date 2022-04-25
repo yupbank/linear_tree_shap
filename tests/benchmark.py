@@ -54,14 +54,15 @@ def main():
                 linear_time = time.time()
                 test_x = train_x
                 linear_result = linear.shap_values(test_x)
+                #linear_result = linear.shap_values_v2(test_x)
                 linear_time = time.time()-linear_time
                 print('round:%s'%i, name, 'linear', depth, linear_time)
                 fast_time = time.time()
                 fast_result = fast.shap_values(test_x)
                 fast_time = time.time()-fast_time
-                print(name, 'fast', depth, fast_time)
+                print('round:%s'%i, name, 'fast', depth, fast_time)
                 try:
-                    np.testing.assert_array_almost_equal(linear_result, fast_result, 2)
+                    np.testing.assert_array_almost_equal(linear_result, fast_result, 1)
                 except Exception as e:
                     print(e)
 
