@@ -2,7 +2,7 @@
 
 #include <Python.h>
 #include <numpy/arrayobject.h>
-#include "linear_tree_shap_v3.h"
+#include "linear_tree_shap_v2.h"
 
 static PyObject *_cext_linear_tree_shap(PyObject *self, PyObject *args);
 static PyObject *_cext_linear_tree_shap_v2(PyObject *self, PyObject *args);

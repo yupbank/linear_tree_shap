@@ -90,11 +90,11 @@ def inference(tree, A, V, N):
     return V
     
 class TreeExplainer:
-    def __init__(self, clf):
+    def __init__(self, clf, base_func=np.polynomial.chebyshev.chebpts2):
         self.clf = clf
         self.tree = copy_tree(clf.tree_)
         self.N = get_N_prime(self.tree.max_depth)
-        self.Base = np.polynomial.chebyshev.chebpts2(self.tree.max_depth)
+        self.Base = base_func(self.tree.max_depth)
         self.Offset = np.vander(self.Base+1).T[::-1]
         self.N_v2 = get_N_v2(self.Base)
 
@@ -105,7 +105,7 @@ class TreeExplainer:
 
     def shap_values(self, X):
         from linear_tree_shap import _cext
-        V = np.zeros_like(X)
+        V = np.zeros_like(X, dtype=np.float64)
         _cext.linear_tree_shap(
                                self.tree.weights, 
                                self.tree.leaf_predictions, 
@@ -122,7 +122,7 @@ class TreeExplainer:
     
     def shap_values_v2(self, X):
         from linear_tree_shap import _cext
-        V = np.zeros_like(X)
+        V = np.zeros_like(X, dtype=np.float64)
         _cext.linear_tree_shap_v2(
                                self.tree.weights, 
                                self.tree.leaf_predictions, 

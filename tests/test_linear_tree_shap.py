@@ -70,9 +70,14 @@ def treeshap(tree):
 def fast_treeshap(tree):
     return fasttreeshap.TreeExplainer(tree, algorithm='v2', n_jobs=1)
 
-def test_benchmark_linear_treeshap(data, linear_treeshap, benchmark):
+def test_benchmark_linear_treeshap_v2(data, linear_treeshap, benchmark):
     x, y, x_test = data
     benchmark(linear_treeshap.shap_values_v2, x_test)
+
+def test_benchmark_linear_treeshap(data, linear_treeshap, benchmark):
+    x, y, x_test = data
+    benchmark(linear_treeshap.shap_values, x_test)
+
 
 def test_benchmark_treeshap(data, treeshap, benchmark):
     x, y, x_test = data
@@ -85,5 +90,17 @@ def test_benchmark_fast_treeshap(data, fast_treeshap, benchmark):
 def test_correctness_linear_treeshap(data, linear_treeshap, treeshap, tree):
     x, y, x_test = data
     actual = linear_treeshap.shap_values(x_test)
+    expected = treeshap.shap_values(x_test)
+    np.testing.assert_array_almost_equal(actual, expected, 2)
+
+def test_correctness_linear_treeshap_v2(data, linear_treeshap, treeshap, tree):
+    x, y, x_test = data
+    actual = linear_treeshap.shap_values_v2(x_test)
+    expected = treeshap.shap_values(x_test)
+    np.testing.assert_array_almost_equal(actual, expected, 2)
+
+def test_correctness_fast_treeshap(data, fast_treeshap, treeshap, tree):
+    x, y, x_test = data
+    actual = fast_treeshap.shap_values(x_test)
     expected = treeshap.shap_values(x_test)
     np.testing.assert_array_almost_equal(actual, expected, 2)
