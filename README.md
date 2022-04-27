@@ -12,5 +12,8 @@ It can be mitigated using `long double` data type.
 - tree depth exceeds 16; even with the `long double` type, there are still chances to overflow. 
 It can still be mitigated using the `fraction` data type.
 
+### No numerical problems with v2
+---
+By using the interpolation method, we can have a numerical stable solution based on Chebyshev nodes of the first or second kind.
 
 
