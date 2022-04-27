@@ -46,14 +46,8 @@ def load_adult():
     return train.values, label_train, test.values
 
 
-@pytest.fixture(params=['adult', 'conductor'])
-def data(request):
-    if request.param == 'adult':
-        return load_adult()
-    elif request.param == 'conductor':
-        return load_conductor()
 
-@pytest.fixture(params=[2, 4, 6, 8, 10, 12])
+@pytest.fixture(params=[2, 4, 6, 8, 10, 12, 16])
 def tree(data, request):
     x, y, x_test = data
     return DecisionTreeRegressor(max_depth=request.param).fit(x, y)
@@ -70,37 +64,47 @@ def treeshap(tree):
 def fast_treeshap(tree):
     return fasttreeshap.TreeExplainer(tree, algorithm='v2', n_jobs=1)
 
-def test_benchmark_linear_treeshap_v2(data, linear_treeshap, benchmark):
-    x, y, x_test = data
-    benchmark(linear_treeshap.shap_values_v2, x_test)
+class TestAdult:
+    @pytest.fixture
+    def data(self):
+        return load_adult()
 
-def test_benchmark_linear_treeshap(data, linear_treeshap, benchmark):
-    x, y, x_test = data
-    benchmark(linear_treeshap.shap_values, x_test)
+    def test_benchmark_linear_treeshap_v2(self, data, linear_treeshap, benchmark):
+        x, y, x_test = data
+        benchmark(linear_treeshap.shap_values_v2, x_test)
+
+    def test_benchmark_linear_treeshap(self, data, linear_treeshap, benchmark):
+        x, y, x_test = data
+        benchmark(linear_treeshap.shap_values, x_test)
 
 
-def test_benchmark_treeshap(data, treeshap, benchmark):
-    x, y, x_test = data
-    benchmark(treeshap.shap_values, x_test, check_additivity=False)
+    def test_benchmark_treeshap(self, data, treeshap, benchmark):
+        x, y, x_test = data
+        benchmark(treeshap.shap_values, x_test, check_additivity=False)
 
-def test_benchmark_fast_treeshap(data, fast_treeshap, benchmark):
-    x, y, x_test = data
-    benchmark(fast_treeshap.shap_values, x_test, check_additivity=False)
+    def test_benchmark_fast_treeshap(self, data, fast_treeshap, benchmark):
+        x, y, x_test = data
+        benchmark(fast_treeshap.shap_values, x_test, check_additivity=False)
 
-def test_correctness_linear_treeshap(data, linear_treeshap, treeshap, tree):
-    x, y, x_test = data
-    actual = linear_treeshap.shap_values(x_test)
-    expected = treeshap.shap_values(x_test)
-    np.testing.assert_array_almost_equal(actual, expected, 2)
+    def test_correctness_linear_treeshap(self, data, linear_treeshap, treeshap, tree):
+        x, y, x_test = data
+        actual = linear_treeshap.shap_values(x_test)
+        expected = treeshap.shap_values(x_test)
+        np.testing.assert_array_almost_equal(actual, expected, 2)
 
-def test_correctness_linear_treeshap_v2(data, linear_treeshap, treeshap, tree):
-    x, y, x_test = data
-    actual = linear_treeshap.shap_values_v2(x_test)
-    expected = treeshap.shap_values(x_test)
-    np.testing.assert_array_almost_equal(actual, expected, 2)
+    def test_correctness_linear_treeshap_v2(self, data, linear_treeshap, treeshap, tree):
+        x, y, x_test = data
+        actual = linear_treeshap.shap_values_v2(x_test)
+        expected = treeshap.shap_values(x_test)
+        np.testing.assert_array_almost_equal(actual, expected, 2)
 
-def test_correctness_fast_treeshap(data, fast_treeshap, treeshap, tree):
-    x, y, x_test = data
-    actual = fast_treeshap.shap_values(x_test)
-    expected = treeshap.shap_values(x_test)
-    np.testing.assert_array_almost_equal(actual, expected, 2)
+    def test_correctness_fast_treeshap(self, data, fast_treeshap, treeshap, tree):
+        x, y, x_test = data
+        actual = fast_treeshap.shap_values(x_test)
+        expected = treeshap.shap_values(x_test)
+        np.testing.assert_array_almost_equal(actual, expected, 2)
+
+class TestConductor(TestAdult):
+    @pytest.fixture
+    def data(self):
+        return load_conductor()
