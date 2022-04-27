@@ -162,7 +162,7 @@ class TreeExplainer:
         E = np.zeros((self.tree.max_depth+1, self.tree.max_depth))
         C[0, :] = 1
         result = np.zeros_like(x)
-        inference_v2(self.tree, x, activation, result, self.Base, self.Offset, self.N_v2, C, E)
+        inference_v2(self.tree, x.astype(np.float32), activation, result, self.Base, self.Offset, self.N_v2, C, E)
         return result
 
     def shap_values(self, X):
@@ -179,7 +179,7 @@ class TreeExplainer:
                                self.tree.children_right.astype(np.int32), 
                                self.tree.max_depth,
                                self.tree.num_nodes,
-                               self.N, X, V)
+                               self.N, X.astype(np.float32), V)
         return V
     
     def shap_values_v2(self, X):
@@ -196,7 +196,7 @@ class TreeExplainer:
                                self.tree.children_right.astype(np.int32), 
                                self.tree.max_depth,
                                self.tree.num_nodes,
-                               self.Base, self.Offset, self.N_v2, X, V)
+                               self.Base, self.Offset, self.N_v2, X.astype(np.float32), V)
         return V
 
 
