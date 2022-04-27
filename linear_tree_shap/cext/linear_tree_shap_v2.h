@@ -133,6 +133,9 @@ void inference_v2(const Tree &tree,
     }
     if (feature >= 0)
     {
+	if(parent >=0 && !activation[parent]){
+	    return;	
+	}
         const tfloat *normal = Norm + tree.edge_heights[node] * tree.max_depth;
         const tfloat *offset = Offset;
         value[feature] += (q - 1) * psi(current_e, offset, Base, q, normal, tree.edge_heights[node]);
