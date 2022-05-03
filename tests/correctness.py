@@ -54,28 +54,28 @@ def methods(clf):
             fasttreeshap.TreeExplainer(clf, algorithm='v1', n_jobs=1), None),
             ('fast_tree_shap_v2', 
             fasttreeshap.TreeExplainer(clf, algorithm='v2', n_jobs=1), None),
-            ('tree_shap', 
-            shap.TreeExplainer(clf), lambda e, x: e.shap_values(x, check_additivity=False)),
     ]
 
 
 def main():
-    print('roud,dataset,method,depth,time')
+    print('dataset,method,depth,correct')
     for data_name, train_x, train_y, test_x in [load_adult(), 
                                            load_conductor()]:
-        for i in range(5):
-            for depth in [2, 4, 6, 8, 12, 16]:
-                clf = DecisionTreeRegressor(max_depth=depth).fit(train_x, train_y)
-                for method_name, exp, executor in methods(clf):
-                    if executor is None:
-                        start = time.time()
-                        exp.shap_values(test_x)
-                        total_time = time.time()-start
-                    else:
-                        start = time.time()
-                        executor(exp, test_x)
-                        total_time = time.time()-start
-                    print(','.join([str(i), data_name, method_name, str(depth), str(total_time)]))
+        for depth in [2, 4, 6, 8, 12, 16]:
+            clf = DecisionTreeRegressor(max_depth=depth).fit(train_x, train_y)
+            exp = shap.TreeExplainer(clf)
+            expected = exp.shap_values(test_x)
+            for method_name, exp, executor in methods(clf):
+                if executor is None:
+                    actual = exp.shap_values(test_x)
+                else:
+                    actual = executor(exp, test_x)
+                try:
+                    np.testing.assert_array_almost_equal(actual, expected)
+                    correct = True
+                except Exception as e:
+                    correct = False
+                print(','.join([data_name, method_name, str(depth), str(correct)]))
 
 
 if __name__ == "__main__":

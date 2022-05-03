@@ -47,7 +47,14 @@ def load_adult():
 
 
 
-@pytest.fixture(params=[2, 4, 6, 8, 10, 12, 16])
+@pytest.fixture(params=[pytest.param(2, marks= [pytest.mark.depth2, pytest.mark.simple]),
+                        pytest.param(4, marks= [pytest.mark.depth4, pytest.mark.simple]),
+                        pytest.param(6, marks= [pytest.mark.depth6, pytest.mark.simple]),
+                        pytest.param(8, marks= [pytest.mark.depth8, pytest.mark.moderate]),
+                        pytest.param(10, marks=[pytest.mark.depth10, pytest.mark.moderate]),
+                        pytest.param(12, marks=[pytest.mark.depth12, pytest.mark.slow]),
+                        pytest.param(16, marks=[pytest.mark.depth16, pytest.mark.slow]),
+                        ])
 def tree(data, request):
     x, y, x_test = data
     return DecisionTreeRegressor(max_depth=request.param).fit(x, y)
@@ -61,8 +68,12 @@ def treeshap(tree):
     return shap.TreeExplainer(tree)
 
 @pytest.fixture
-def fast_treeshap(tree):
+def fast_treeshap_v2(tree):
     return fasttreeshap.TreeExplainer(tree, algorithm='v2', n_jobs=1)
+
+@pytest.fixture
+def fast_treeshap_v1(tree):
+    return fasttreeshap.TreeExplainer(tree, algorithm='v1', n_jobs=1)
 
 class TestAdult:
     @pytest.fixture
@@ -82,9 +93,13 @@ class TestAdult:
         x, y, x_test = data
         benchmark(treeshap.shap_values, x_test, check_additivity=False)
 
-    def test_benchmark_fast_treeshap(self, data, fast_treeshap, benchmark):
+    def test_benchmark_fast_treeshap_v1(self, data, fast_treeshap_v1, benchmark):
         x, y, x_test = data
-        benchmark(fast_treeshap.shap_values, x_test, check_additivity=False)
+        benchmark(fast_treeshap_v1.shap_values, x_test, check_additivity=False)
+
+    def test_benchmark_fast_treeshap_v2(self, data, fast_treeshap_v2, benchmark):
+        x, y, x_test = data
+        benchmark(fast_treeshap_v2.shap_values, x_test, check_additivity=False)
 
     def test_correctness_linear_treeshap(self, data, linear_treeshap, treeshap, tree):
         x, y, x_test = data
@@ -98,9 +113,15 @@ class TestAdult:
         expected = treeshap.shap_values(x_test)
         np.testing.assert_array_almost_equal(actual, expected, 2)
 
-    def test_correctness_fast_treeshap(self, data, fast_treeshap, treeshap, tree):
+    def test_correctness_fast_treeshap_v1(self, data, fast_treeshap_v1, treeshap, tree):
         x, y, x_test = data
-        actual = fast_treeshap.shap_values(x_test)
+        actual = fast_treeshap_v1.shap_values(x_test)
+        expected = treeshap.shap_values(x_test)
+        np.testing.assert_array_almost_equal(actual, expected, 2)
+
+    def test_correctness_fast_treeshap_v2(self, data, fast_treeshap_v2, treeshap, tree):
+        x, y, x_test = data
+        actual = fast_treeshap_v2.shap_values(x_test)
         expected = treeshap.shap_values(x_test)
         np.testing.assert_array_almost_equal(actual, expected, 2)
 
