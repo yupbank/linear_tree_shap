@@ -50,7 +50,7 @@ def methods(clf):
              linear_tree_shap.TreeExplainer(clf), None),
             ('linear_tree_shap_v2', 
              linear_tree_shap.TreeExplainer(clf), lambda e, x: e.shap_values_v2(x)),
-            ('fasttreeshap_v1', 
+            ('fast_tree_shap_v1', 
             fasttreeshap.TreeExplainer(clf, algorithm='v1', n_jobs=1), None),
             ('fast_tree_shap_v2', 
             fasttreeshap.TreeExplainer(clf, algorithm='v2', n_jobs=1), None),
@@ -61,7 +61,7 @@ def main():
     print('dataset,method,depth,correct')
     for data_name, train_x, train_y, test_x in [load_adult(), 
                                            load_conductor()]:
-        for depth in [2, 4, 6, 8, 12, 16]:
+        for depth in [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]:
             clf = DecisionTreeRegressor(max_depth=depth).fit(train_x, train_y)
             exp = shap.TreeExplainer(clf)
             expected = exp.shap_values(test_x)
@@ -71,7 +71,7 @@ def main():
                 else:
                     actual = executor(exp, test_x)
                 try:
-                    np.testing.assert_array_almost_equal(actual, expected)
+                    np.testing.assert_array_almost_equal(actual, expected, 2)
                     correct = True
                 except Exception as e:
                     correct = False
